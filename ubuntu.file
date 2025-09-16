@@ -1,0 +1,102 @@
+import requests
+import os
+from urllib.parse import urlparse
+from pathlib import Path
+
+def download_image():
+    """
+    Prompts user for an image URL, downloads the image, and saves it to Fetched_Images directory.
+    Handles errors gracefully and follows Ubuntu principles.
+    """
+    # Community: Connect to the wider web community
+    url = input("Please enter the URL of the image you want to download: ").strip()
+    
+    if not url:
+        print("❌ No URL provided. Please try again.")
+        return
+    
+    # Create directory if it doesn't exist (Practicality)
+    directory = "Fetched_Images"
+    try:
+        os.makedirs(directory, exist_ok=True)
+        print(f"📁 Directory '{directory}' is ready")
+    except OSError as e:
+        print(f"❌ Error creating directory: {e}")
+        return
+    
+    # Extract filename from URL or generate one
+    try:
+        parsed_url = urlparse(url)
+        path = parsed_url.path
+        filename = os.path.basename(path)
+        
+        # If no filename in URL, generate one
+        if not filename or '.' not in filename:
+            filename = f"downloaded_image_{int(os.times()[4])}.jpg"
+        elif not any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']):
+            filename += ".jpg"
+        
+        filepath = os.path.join(directory, filename)
+        
+        # Respect: Handle potential duplicate filenames
+        counter = 1
+        base_name, extension = os.path.splitext(filename)
+        while os.path.exists(filepath):
+            filename = f"{base_name}_{counter}{extension}"
+            filepath = os.path.join(directory, filename)
+            counter += 1
+        
+    except Exception as e:
+        print(f"❌ Error processing filename: {e}")
+        return
+    
+    # Download the image with error handling (Respect)
+    try:
+        print("⏳ Connecting to server...")
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()  # Check for HTTP errors
+        
+        # Check if content is actually an image
+        content_type = response.headers.get('content-type', '')
+        if 'image' not in content_type:
+            print("❌ The URL does not point to an image file")
+            return
+        
+        # Download and save the image
+        print(f"📥 Downloading image: {filename}")
+        with open(filepath, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    file.write(chunk)
+        
+        # Sharing: Organize for later sharing
+        file_size = os.path.getsize(filepath)
+        print(f"✅ Successfully downloaded: {filename}")
+        print(f"💾 File size: {file_size} bytes")
+        print(f"📁 Saved to: {os.path.abspath(filepath)}")
+        
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ HTTP Error: {e}")
+    except requests.exceptions.ConnectionError:
+        print("❌ Connection Error: Unable to connect to the server")
+    except requests.exceptions.Timeout:
+        print("❌ Timeout Error: Connection timed out")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Download Error: {e}")
+    except IOError as e:
+        print(f"❌ File Error: Unable to save image - {e}")
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+
+if _name_ == "_main_":
+    print("🌐 Image Downloader Tool")
+    print("=" * 40)
+    
+    try:
+        download_image()
+    except KeyboardInterrupt:
+        print("\n👋 Operation cancelled by user")
+    except Exception as e:
+        print(f"💥 Critical error: {e}")
+    
+    print("\nThank you for using the Image Downloader!")
