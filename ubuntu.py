@@ -99,4 +99,5 @@ if _name_ == "_main_":
     except Exception as e:
         print(f"💥 Critical error: {e}")
     
+
     print("\nThank you for using the Image Downloader!")
